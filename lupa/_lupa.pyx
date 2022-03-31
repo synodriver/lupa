@@ -1135,7 +1135,7 @@ cdef object resume_lua_thread(_LuaThread thread, tuple args):
             # already terminated
             raise StopIteration
         if args:
-            nargs = len(args)
+            nargs = <int>len(args)
             push_lua_arguments(thread._runtime, co, args)
         with nogil:
             status = lua.lua_resume(co, L, nargs, &nres)
@@ -1381,7 +1381,7 @@ cdef py_object* unpack_userdata(lua_State *L, int n) nogil:
 cdef int py_function_result_to_lua(LuaRuntime runtime, lua_State *L, object o) except -1:
      if runtime._unpack_returned_tuples and isinstance(o, tuple):
          push_lua_arguments(runtime, L, <tuple>o)
-         return len(<tuple>o)
+         return <int>len(<tuple>o)
      check_lua_stack(L, 1)
      return py_to_lua(runtime, L, o)
 
