@@ -265,6 +265,13 @@ cdef extern from "lua.h" nogil:
         # private part
         int i_ci               #           active function */
 
+    # from openresty
+    void lua_setexdata(lua_State *L, void *exdata)
+    void *lua_getexdata(lua_State *L)
+    void lua_setexdata2(lua_State *L, void *exdata2)
+    void *lua_getexdata2(lua_State *L)
+    void lua_resetthread(lua_State *L, lua_State *th)
+
 
 ################################################################################
 # lauxlib.h

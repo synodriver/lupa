@@ -508,12 +508,12 @@ cdef class LuaRuntime:
         luaL_openlib(L, "python", py_lib, 0)       # lib
         lua.lua_pushlightuserdata(L, <void*>self)  # lib udata
         lua.lua_pushcclosure(L, py_args, 1)        # lib function
-        lua.lua_setfield(L, -2, "args")            # lib 
+        lua.lua_setfield(L, -2, "args")            # lib
 
         # register our own object metatable
         lua.luaL_newmetatable(L, POBJECT)          # lib metatbl
         luaL_openlib(L, NULL, py_object_lib, 0)
-        lua.lua_pop(L, 1)                          # lib 
+        lua.lua_pop(L, 1)                          # lib
 
         # create and store the python references table
         lua.lua_newtable(L)                                  # lib tbl
@@ -534,6 +534,80 @@ cdef class LuaRuntime:
         lua.lua_pop(L, 1)
 
         return 0  # nothing left to return on the stack
+
+    cpdef void setexdata(self, object exdata):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        cdef void *old
+        lock_runtime(self)
+        try:
+            old = lua.lua_getexdata(L)
+            if old != NULL:
+                cpython.ref.Py_DECREF(<object?>old)
+            if exdata is not None:
+                cpython.ref.Py_INCREF(exdata)
+                lua.lua_setexdata(L, <void*> exdata)
+            else:
+                lua.lua_setexdata(L, NULL)
+        finally:
+            unlock_runtime(self)
+
+    cpdef object getexdata(self):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        cdef void *ret
+        lock_runtime(self)
+        try:
+            ret = lua.lua_getexdata(L)
+            if ret != NULL:
+                return <object>ret
+            else:
+                return None
+        finally:
+            unlock_runtime(self)
+
+    cpdef void setexdata2(self, object exdata):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        cdef void *old
+        lock_runtime(self)
+        try:
+            old = lua.lua_getexdata2(L)
+            if old != NULL:
+                cpython.ref.Py_DECREF(<object?>old)
+            if exdata is not None:
+                cpython.ref.Py_INCREF(exdata)
+                lua.lua_setexdata2(L, <void *> exdata)
+            else:
+                lua.lua_setexdata2(L, NULL)
+        finally:
+            unlock_runtime(self)
+
+    cpdef object getexdata2(self):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        cdef void *ret
+        lock_runtime(self)
+        try:
+            ret = lua.lua_getexdata2(L)
+            if ret != NULL:
+                return <object>ret
+            else:
+                return None
+        finally:
+            unlock_runtime(self)
+
+
+    cpdef void reset_thread(self, LuaRuntime th):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        lock_runtime(self)
+        lock_runtime(th)
+        try:
+            lua.lua_resetthread(L, th._state)
+        finally:
+            unlock_runtime(self)
+            unlock_runtime(th)
 
 
 ################################################################################
@@ -1736,7 +1810,7 @@ cdef int py_object_gc_with_gil(py_object *py_obj, lua_State* L) with gil:
         return 0
     finally:
         py_obj.obj = NULL
-    
+
 cdef int py_object_gc(lua_State* L) nogil:
     if not lua.lua_isuserdata(L, 1):
         return 0
@@ -1762,7 +1836,7 @@ cdef bint call_python(LuaRuntime runtime, lua_State *L, py_object* py_obj) excep
     else:
         args = ()
         kwargs = {}
-        
+
         for i in range(nargs):
             arg = py_from_lua(runtime, L, i+2)
             if isinstance(arg, _PyArguments):
