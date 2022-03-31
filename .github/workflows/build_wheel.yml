@@ -1,0 +1,47 @@
+name: build wheel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        os: [windows-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
+
+    - name: Check out recursively
+      run: git submodule update --init --recursive
+
+    - name: build luajit
+      run: |
+        cd third-party/luajit21/src/
+        ./msvcbuild.bat gc64
+        cd ../..
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade wheel
+        pip install flake8 pytest
+        pip install -r requirements.txt
+    - name: build_whl
+      run: |
+        python setup.py sdist bdist_wheel --with-cython --lua-lib third-party\luajit21\src\lua51.lib --lua-includes third-party\luajit21\src
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}-${{ matrix.python-version }}
+        path: dist/*.whl
