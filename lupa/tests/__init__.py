@@ -12,10 +12,11 @@ import lupa
 def suite():
     test_dir = os.path.abspath(os.path.dirname(__file__))
 
-    tests = []
-    for filename in os.listdir(test_dir):
-        if filename.endswith('.py') and not filename.startswith('_'):
-            tests.append('lupa.tests.'  + filename[:-3])
+    tests = [
+        f'lupa.tests.{filename[:-3]}'
+        for filename in os.listdir(test_dir)
+        if filename.endswith('.py') and not filename.startswith('_')
+    ]
 
     suite = unittest.defaultTestLoader.loadTestsFromNames(tests)
     suite.addTest(doctest.DocTestSuite(lupa._lupa))

@@ -86,25 +86,30 @@ def decode_path_output(s):
 
 def check_lua_installed(package='luajit', min_version='2'):
     try:
-        cmd_output('pkg-config %s --exists' % package)
+        cmd_output(f'pkg-config {package} --exists')
     except RuntimeError:
         # pkg-config gives no stdout when it is given --exists and it cannot
         # find the package, so we'll give it some better output
         error = sys.exc_info()[1]
         if not error.args[0]:
-            raise RuntimeError("pkg-config cannot find an installed %s" % package)
+            raise RuntimeError(f"pkg-config cannot find an installed {package}")
         raise
 
-    lua_version = cmd_output('pkg-config %s --modversion' % package).decode('iso8859-1')
+    lua_version = cmd_output(f'pkg-config {package} --modversion').decode(
+        'iso8859-1'
+    )
+
     try:
         if tuple(map(try_int, lua_version.split('.'))) < tuple(map(try_int, min_version.split('.'))):
-            raise PkgConfigError("Expected version %s+ of %s, but found %s" %
-                                 (min_version, package, lua_version))
+            raise PkgConfigError(
+                f"Expected version {min_version}+ of {package}, but found {lua_version}"
+            )
+
     except (ValueError, TypeError):
         print("failed to parse version '%s' of installed %s package, minimum is %s" % (
             lua_version, package, min_version))
     else:
-        print("pkg-config found %s version %s" % (package, lua_version))
+        print(f"pkg-config found {package} version {lua_version}")
 
 
 def lua_include(package='luajit'):
@@ -112,14 +117,12 @@ def lua_include(package='luajit'):
     cflag_out = decode_path_output(cflag_out)
 
     def trim_i(s):
-        if s.startswith('-I'):
-            return s[2:]
-        return s
+        return s[2:] if s.startswith('-I') else s
     return list(map(trim_i, cflag_out.split()))
 
 
 def lua_libs(package='luajit'):
-    libs_out = cmd_output('pkg-config %s --libs' % package)
+    libs_out = cmd_output(f'pkg-config {package} --libs')
     libs_out = decode_path_output(libs_out)
     return libs_out.split()
 
@@ -133,8 +136,8 @@ def get_lua_build_from_arguments():
     if not lua_lib or not lua_includes:
         return None
 
-    print('Using Lua library: %s' % lua_lib)
-    print('Using Lua include directory: %s' % lua_includes)
+    print(f'Using Lua library: {lua_lib}')
+    print(f'Using Lua include directory: {lua_includes}')
 
     root, ext = os.path.splitext(lua_lib)
     if os.name == 'nt' and ext == '.lib':
@@ -155,15 +158,14 @@ def find_lua_build(no_luajit=False):
             continue
         libfile = os.path.join(filepath, 'libluajit.a')
         if os.path.isfile(libfile):
-            print("found LuaJIT build in %s" % filepath)
+            print(f"found LuaJIT build in {filepath}")
             print("building statically")
             return dict(extra_objects=[libfile],
                         include_dirs=[filepath])
         # also check for lua51.lib, the Windows equivalent of libluajit.a
         for libfile in iglob(os.path.join(filepath, 'lua5?.lib')):
             if os.path.isfile(libfile):
-                print("found LuaJIT build in %s (%s)" % (
-                    filepath, os.path.basename(libfile)))
+                print(f"found LuaJIT build in {filepath} ({os.path.basename(libfile)})")
                 print("building statically")
                 # And return the dll file name too, as we need to
                 # include it in the install directory
@@ -173,31 +175,27 @@ def find_lua_build(no_luajit=False):
     print("No local build of LuaJIT2 found in lupa directory")
 
     # try to find installed LuaJIT2 or Lua
-    if no_luajit:
-        packages = []
-    else:
-        packages = [('luajit', '2')]
+    packages = [] if no_luajit else [('luajit', '2')]
     packages += [
         (name, lua_version)
         for lua_version in ('5.4', '5.3', '5.2', '5.1')
         for name in (
-            'lua%s' % lua_version,
-            'lua-%s' % lua_version,
-            'lua%s' % lua_version.replace(".", ""),
+            f'lua{lua_version}',
+            f'lua-{lua_version}',
+            f'lua{lua_version.replace(".", "")}',
             'lua',
         )
     ]
 
+
     for package_name, min_version in packages:
-        print("Checking for installed %s library using pkg-config" %
-            package_name)
+        print(f"Checking for installed {package_name} library using pkg-config")
         try:
             check_lua_installed(package_name, min_version)
             return dict(extra_objects=lua_libs(package_name),
                         include_dirs=lua_include(package_name))
         except RuntimeError:
-            print("Did not find %s using pkg-config: %s" % (
-                package_name, sys.exc_info()[1]))
+            print(f"Did not find {package_name} using pkg-config: {sys.exc_info()[1]}")
 
     return {}
 
@@ -305,10 +303,11 @@ ext_args = {
 
 # check if Cython is installed, and use it if requested or necessary
 use_cython = has_option('--with-cython')
-if not use_cython:
-    if not os.path.exists(os.path.join(basedir, 'lupa', '_lupa.c')):
-        print("generated sources not available, need Cython to build")
-        use_cython = True
+if not use_cython and not os.path.exists(
+    os.path.join(basedir, 'lupa', '_lupa.c')
+):
+    print("generated sources not available, need Cython to build")
+    use_cython = True
 
 cythonize = None
 source_extension = ".c"
@@ -317,7 +316,7 @@ if use_cython:
         import Cython.Compiler.Version
         import Cython.Compiler.Errors as CythonErrors
         from Cython.Build import cythonize
-        print("building with Cython " + Cython.Compiler.Version.version)
+        print(f"building with Cython {Cython.Compiler.Version.version}")
         source_extension = ".pyx"
         CythonErrors.LEVEL = 0
     except ImportError:
@@ -328,9 +327,11 @@ else:
 ext_modules = [
     Extension(
         'lupa._lupa',
-        sources=[os.path.join('lupa', '_lupa'+source_extension)],
-        **ext_args
-    )]
+        sources=[os.path.join('lupa', f'_lupa{source_extension}')],
+        **ext_args,
+    )
+]
+
 
 if cythonize is not None:
     ext_modules = cythonize(ext_modules)
