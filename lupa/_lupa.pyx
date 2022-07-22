@@ -540,6 +540,80 @@ cdef class LuaRuntime:
 
         return 0  # nothing left to return on the stack
 
+    cpdef void setexdata(self, object exdata):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        cdef void *old
+        lock_runtime(self)
+        try:
+            old = lua.lua_getexdata(L)
+            if old != NULL:
+                cpython.ref.Py_DECREF(<object?>old)
+            if exdata is not None:
+                cpython.ref.Py_INCREF(exdata)
+                lua.lua_setexdata(L, <void*> exdata)
+            else:
+                lua.lua_setexdata(L, NULL)
+        finally:
+            unlock_runtime(self)
+
+    cpdef object getexdata(self):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        cdef void *ret
+        lock_runtime(self)
+        try:
+            ret = lua.lua_getexdata(L)
+            if ret != NULL:
+                return <object>ret
+            else:
+                return None
+        finally:
+            unlock_runtime(self)
+
+    cpdef void setexdata2(self, object exdata):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        cdef void *old
+        lock_runtime(self)
+        try:
+            old = lua.lua_getexdata2(L)
+            if old != NULL:
+                cpython.ref.Py_DECREF(<object?>old)
+            if exdata is not None:
+                cpython.ref.Py_INCREF(exdata)
+                lua.lua_setexdata2(L, <void *> exdata)
+            else:
+                lua.lua_setexdata2(L, NULL)
+        finally:
+            unlock_runtime(self)
+
+    cpdef object getexdata2(self):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        cdef void *ret
+        lock_runtime(self)
+        try:
+            ret = lua.lua_getexdata2(L)
+            if ret != NULL:
+                return <object>ret
+            else:
+                return None
+        finally:
+            unlock_runtime(self)
+
+
+    cpdef void reset_thread(self, LuaRuntime th):
+        assert self._state is not NULL
+        cdef lua_State *L = self._state
+        lock_runtime(self)
+        lock_runtime(th)
+        try:
+            lua.lua_resetthread(L, th._state)
+        finally:
+            unlock_runtime(self)
+            unlock_runtime(th)
+
 
 ################################################################################
 # decorators for calling Python functions with keyword (named) arguments
