@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_win:
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -21,7 +21,7 @@ jobs:
     - name: Check out recursively
       run: git submodule update --init --recursive
 
-    - name: build luajit
+    - name: build luajit with gc64
       run: |
         cd third-party/openresty/src/
         ./msvcbuild.bat gc64
@@ -41,6 +41,44 @@ jobs:
     - name: build_whl
       run: |
         python setup.py sdist bdist_wheel --with-cython --lua-lib third-party\openresty\src\lua51.lib --lua-includes third-party\openresty\src
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}-${{ matrix.python-version }}
+        path: dist/*.whl
+
+  build_linux:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        os: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check out recursively
+      run: git submodule update --init --recursive
+
+    - name: build luajit with gc64
+      run: |
+        cd third-party/openresty/src/
+        make XCFLAGS='-DLUAJIT_ENABLE_GC64 -fPIC'
+        cd ../..
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade wheel
+        pip install flake8 pytest
+        pip install -r requirements.txt
+    - name: build_whl
+      run: |
+        python setup.py sdist bdist_wheel --with-cython --lua-lib third-party/openresty/src/libluajit.so --lua-includes third-party/openresty/src
     - uses: actions/upload-artifact@v2
       with:
         name: ${{ matrix.os }}-${{ matrix.python-version }}
