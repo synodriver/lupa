@@ -1605,7 +1605,19 @@ class TestLuaCoroutines(SetupLuaRuntimeMixin, LupaTestCase):
         while gen:
             result.append(_next(gen))
         self.assertEqual([0,1,0,1,0,1], result)
-
+    
+    def test_getsetedata(self):
+        exdata = self.lua.getexdata()
+        self.assertEqual(exdata, None)
+        self.lua.setexdata(1)
+        exdata = self.lua.getexdata()
+        self.assertEqual(exdata, 1)
+        self.lua.setexdata(2)
+        exdata = self.lua.getexdata()
+        self.assertEqual(exdata, 2)
+        self.lua.setexdata(None)
+        exdata = self.lua.getexdata()
+        self.assertEqual(exdata, None)
 
 class TestLuaCoroutinesWithDebugHooks(SetupLuaRuntimeMixin, LupaTestCase):
 
