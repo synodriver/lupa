@@ -1225,7 +1225,11 @@ cdef object resume_lua_thread(_LuaThread thread, tuple args):
                     # no values left to return
                     raise StopIteration
             else:
-                raise_lua_error(thread._runtime, co, status)
+                error = py_from_lua(thread._runtime, co, 1)  # todo: Is this ok for issue#144?
+                if isinstance(error, BaseException):
+                    thread._runtime.reraise_on_exception()
+                else:
+                    raise_lua_error(thread._runtime, co, status)
 
         # Move yielded values to the main state before unpacking.
         # This is what Lua's internal auxresume function is doing;
@@ -1758,7 +1762,7 @@ cdef object execute_lua_call(LuaRuntime runtime, lua_State *L, Py_ssize_t nargs)
                 lua.lua_replace(L, -2)
                 lua.lua_insert(L, 1)
                 has_lua_traceback_func = True
-        result_status = lua.lua_pcall(L, nargs, lua.LUA_MULTRET, has_lua_traceback_func)
+        result_status = lua.lua_pcall(L, <int>nargs, lua.LUA_MULTRET, has_lua_traceback_func)
         if has_lua_traceback_func:
             lua.lua_remove(L, 1)
     results = unpack_lua_results(runtime, L)
