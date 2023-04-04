@@ -1,8 +1,8 @@
 Lupa change log
 ===============
 
-2.0a1 (2022-??-??)
-------------------
+2.0 (2023-04-03)
+----------------
 
 * GH#217: Lua stack traces in Python exception messages are now reversed to
   match the order of Python stack traces.
@@ -10,6 +10,9 @@ Lupa change log
 * GH#196: Lupa now ships separate extension modules built with Lua 5.3,
   Lua 5.4, LuaJIT 2.0 and LuaJIT 2.1 beta.  Note that this is build specific
   and may depend on the platform.  A normal Python import cascade can be used.
+
+* GH#211: A new option `max_memory` allows to limit the memory usage of Lua code.
+  (patch by Leo Developer)
 
 * GH#171: Python references in Lua are now more safely reference counted
   to prevent garbage collection glitches.
@@ -29,6 +32,9 @@ Lupa change log
 * GH#174: Failures while calling the ``__index`` method in Lua during a
   table index lookup from Python could crash Python.
   (patch by Guilherme Dantas)
+
+* GH#137: Passing ``None`` as a dict key into ``table_from()`` crashed.
+  (patch by Leo Developer)
 
 * GH#176: A new function ``python.args(*args, **kwargs)`` was added
   to help with building Python argument tuples and keyword argument dicts
