@@ -13,7 +13,7 @@ jobs:
         os: [windows-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: amd64
@@ -28,7 +28,7 @@ jobs:
         cd ../..
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -41,7 +41,7 @@ jobs:
     - name: build_whl
       run: |
         python setup.py sdist bdist_wheel --with-cython --lua-lib third-party\openresty\src\lua51.lib --lua-includes third-party\openresty\src
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.os }}-${{ matrix.python-version }}
         path: dist/*.whl
@@ -55,7 +55,7 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Check out recursively
       run: git submodule update --init --recursive
 
@@ -66,7 +66,7 @@ jobs:
         cd ../..
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -79,7 +79,7 @@ jobs:
     - name: build_whl
       run: |
         python setup.py sdist bdist_wheel --with-cython --lua-lib third-party/openresty/src/libluajit.so --lua-includes third-party/openresty/src
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.os }}-${{ matrix.python-version }}
         path: dist/*.whl
