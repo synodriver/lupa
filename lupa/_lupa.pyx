@@ -9,7 +9,6 @@ from __future__ import absolute_import
 cimport cython
 
 from libc.string cimport strlen, strchr
-from libc.stdlib cimport malloc, free, realloc
 from libc.stdio cimport fprintf, stderr, fflush
 from . cimport luaapi as lua
 from .luaapi cimport lua_State
@@ -22,6 +21,7 @@ from cpython.ref cimport PyObject
 from cpython.method cimport (
     PyMethod_Check, PyMethod_GET_SELF, PyMethod_GET_FUNCTION)
 from cpython.bytes cimport PyBytes_FromFormat
+from cpython.mem cimport PyMem_RawRealloc, PyMem_RawFree
 
 #from libc.stdint cimport uintptr_t
 cdef extern from *:
@@ -1935,7 +1935,7 @@ cdef void* _lua_alloc_restricted(void* ud, void* ptr, size_t old_size, size_t ne
 
     cdef void* new_ptr
     if new_size == 0:
-        free(ptr)
+        PyMem_RawFree(ptr)
         memory_status.used -= old_size  # add deallocated old size to available memory
         return NULL
     elif new_size == old_size:
@@ -1945,7 +1945,7 @@ cdef void* _lua_alloc_restricted(void* ud, void* ptr, size_t old_size, size_t ne
         # print("REACHED LIMIT")
         return NULL
     # print("  realloc()...")
-    new_ptr = realloc(ptr, new_size)
+    new_ptr = PyMem_RawRealloc(ptr, new_size)
     # print("  ", memory_status.used, new_size - old_size, memory_status.used + new_size - old_size)
     if new_ptr is not NULL:
         memory_status.used += new_size - old_size
