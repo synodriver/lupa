@@ -19,7 +19,7 @@ try:
 except ImportError:
     from distutils.core import setup, Extension
 
-VERSION = '2.0'
+VERSION = '2.1'
 
 extra_setup_args = {}
 
@@ -30,7 +30,6 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 if 'setuptools' in sys.modules:
     extra_setup_args['test_suite'] = 'lupa.tests.suite'
-    extra_setup_args["zip_safe"] = False
 
 
 class PkgConfigError(RuntimeError):
@@ -346,6 +345,8 @@ if has_option('--without-assert'):
     c_defines.append(('CYTHON_WITHOUT_ASSERTIONS', None))
 if has_option('--with-lua-checks'):
     c_defines.append(('LUA_USE_APICHECK', None))
+if has_option('--with-lua-dlopen'):
+    c_defines.append(('LUA_USE_DLOPEN', None))
 
 
 # find Lua
@@ -368,7 +369,7 @@ if not configs and not option_no_bundle:
             # https://luajit.org/install.html#windows
             or (platform.startswith('win') and 'luajit' in os.path.basename(lua_bundle_path.rstrip(os.sep)))
             # Let's restrict LuaJIT to x86_64 for now.
-            or (get_machine() != "x86_64" and 'luajit' in os.path.basename(lua_bundle_path.rstrip(os.sep)))
+            or (get_machine() not in ("x86_64", "AMD64") and 'luajit' in os.path.basename(lua_bundle_path.rstrip(os.sep)))
         )
     ]
 if not configs:
@@ -495,6 +496,8 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Lua',
         'Programming Language :: Other Scripting Engines',
         'Operating System :: OS Independent',
         'Topic :: Software Development',

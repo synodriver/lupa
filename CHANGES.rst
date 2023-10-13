@@ -1,11 +1,13 @@
 Lupa change log
 ===============
 
-2.1 (2023-??-??)
+2.1 (2023-10-06)
 ----------------
 
 * The bundled Lua 5.1 was updated to 5.1.5 and Lua 5.2 to 5.2.4.
   (patch by xxyzz)
+
+* Built with Cython 3.0.3 for improved support of Python 3.12.
 
 
 2.0 (2023-04-03)
