@@ -634,7 +634,7 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_table_from_nested_dict(self):
         data = {"a": {"a": "foo"}, "b": {"b": "bar"}}
-        table = self.lua.table_from(data, recursive=True)
+        table = self.lua.table_from(data, max_depth=10)
         self.assertEqual(table["a"]["a"], "foo")
         self.assertEqual(table["b"]["b"], "bar")
         self.lua.globals()["data"] = table
@@ -659,7 +659,7 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_table_from_nested_list(self):
         data = {"a": {"a": "foo"}, "b": [1, 2, 3]}
-        table = self.lua.table_from(data, recursive=True)
+        table = self.lua.table_from(data, max_depth=10)
         self.assertEqual(table["a"]["a"], "foo")
         self.assertEqual(table["b"][1], 1)
         self.assertEqual(table["b"][2], 2)
@@ -686,19 +686,24 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
 
     def test_table_from_nested_list_bad(self):
         data = {"a": {"a": "foo"}, "b": [1, 2, 3]}
-        table = self.lua.table_from(data, recursive=False) # in this case, lua will get userdata instead of table
+        table = self.lua.table_from(data, max_depth=10) # in this case, lua will get userdata instead of table
         self.assertEqual(table["a"]["a"], "foo")
-        self.assertEqual(table["b"][0], 1)
-        self.assertEqual(table["b"][1], 2)
-        self.assertEqual(table["b"][2], 3)
+        print(list(table["b"]))
+        self.assertEqual(table["b"][1], 1)
+        self.assertEqual(table["b"][2], 2)
+        self.assertEqual(table["b"][3], 3)
         self.lua.globals()["data"] = table
 
-        def test():
-            self.lua.eval("assert(type(data.a)=='table', 'failed, expect table, got '..type(data.a))")
-            self.lua.eval("assert(type(data.b)=='table', 'failed, expect table, got '..type(data.b))")
+        self.lua.eval("assert(type(data.a)=='table', 'failed, expect table, got '..type(data.a))")
+        self.lua.eval("assert(type(data.b)=='table', 'failed, expect table, got '..type(data.b))")
 
-        self.assertRaises(lupa.LuaError, test)
         del self.lua.globals()["data"]
+
+    def test_table_from_recursive_dict(self):
+        data = {}
+        data["key"] = data
+        with self.assertRaises(ValueError):
+            self.lua.table_from(data, max_depth=10)
 
     # FIXME: it segfaults
     # def test_table_from_generator_calling_lua_functions(self):
@@ -2867,7 +2872,7 @@ class PythonArgumentsInLuaTest(SetupLuaRuntimeMixin, LupaTestCase):
             if objtype not in {'number', 'string'}:
                 self.assertIncorrect('python.args{[kwargs["%s"]] = true}' % objtype,
                         regex='table key is neither an integer nor a string')
-
+ 
     def test_kwargs_merge(self):
         self.assertResult('python.args{1, a=1}, python.args{2}, python.args{}, python.args{b=2}', (1, 2), dict(a=1, b=2))
 
