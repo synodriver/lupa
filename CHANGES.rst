@@ -1,8 +1,27 @@
 Lupa change log
 ===============
 
-2.1 (2023-??-??)
+2.2 (2024-06-02)
 ----------------
+
+* A new method ``LuaRuntime.gccollect()`` was added to trigger the Lua garbage collector.
+
+* A new context manager ``LuaRuntime.nogc()`` was added to temporarily disable the Lua
+  garbage collector.
+
+* Freeing Python objects from a thread while running Lua code could run into a deadlock.
+
+* The bundled LuaJIT versions were updated to the latest git branches.
+
+* Built with Cython 3.0.10.
+
+
+2.1 (2024-03-24)
+----------------
+
+* GH#199: The ``table_from()`` method gained a new keyword argument ``recursive=False``.
+  If true, Python data structures will be recursively mapped to Lua tables,
+  taking care of loops and duplicates via identity de-duplication.
 
 * GH#248: The LuaRuntime methods "eval", "execute" and "compile" gained new
   keyword options ``mode`` and ``name`` that allow constraining the input type
@@ -16,10 +35,14 @@ Lupa change log
   explicitly at need.
   (original patch by Richard Connon)
 
-* The bundled Lua 5.1 was updated to 5.1.5 and Lua 5.2 to 5.2.4.
+* GH#234: The bundled Lua 5.1 was updated to 5.1.5 and Lua 5.2 to 5.2.4.
   (patch by xxyzz)
 
-* Built with Cython 3.0.8 for improved support of Python 3.12.
+* The bundled Lua 5.4 was updated to 5.4.6.
+
+* The bundled LuaJIT versions were updated to the latest git branches.
+
+* Built with Cython 3.0.9 for improved support of Python 3.12/13.
 
 
 2.0 (2023-04-03)

@@ -29,7 +29,7 @@ except NameError:
     def _next(o):
         return o.next()
 
-unicode_type = type('abc'.decode('ASCII') if IS_PYTHON2 else 'abc')
+unicode_type = type(b'abc'.decode('ASCII') if IS_PYTHON2 else 'abc')
 
 if IS_PYTHON2:
     unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
@@ -55,6 +55,7 @@ class TestLuaRuntimeRefcounting(LupaTestCase):
             run_test()
         del i
         gc.collect()
+
         new_count = len(gc.get_objects())
         if off_by_one and old_count == new_count + 1:
             # FIXME: This happens in test_attrgetter_refcycle - need to investigate why!
@@ -119,6 +120,20 @@ class TestLuaRuntime(SetupLuaRuntimeMixin, LupaTestCase):
         lua_implementation = self.lua.lua_implementation
         self.assertTrue(lua_implementation.startswith("Lua"), lua_implementation)
         self.assertTrue(lua_implementation.split()[0] in ("Lua", "LuaJIT"), lua_implementation)
+
+    def test_lua_gccollect(self):
+        self.lua.gccollect()
+
+    def test_lua_nogc(self):
+        if self.lua.lua_version >= (5,2):
+            self.assertTrue(self.lua.eval('collectgarbage("isrunning")'))
+
+        with self.lua.nogc():
+            if self.lua.lua_version >= (5,2):
+                self.assertFalse(self.lua.eval('collectgarbage("isrunning")'))
+
+        if self.lua.lua_version >= (5,2):
+            self.assertTrue(self.lua.eval('collectgarbage("isrunning")'))
 
     def test_eval(self):
         self.assertEqual(2, self.lua.eval('1+1'))
@@ -2101,6 +2116,23 @@ class TestThreading(LupaTestCase):
         ## else:
         ##     image = Image.fromstring('1', (image_size, image_size), result_bytes)
         ##     image.show()
+
+    def test_lua_gc_deadlock(self):
+        # Delete a Lua reference from a thread while the LuaRuntime is running.
+        lua = self.lupa.LuaRuntime()
+        ref = [lua.eval("{}")]
+
+        def trigger_gc(ref):
+            del ref[0]
+
+        thread = threading.Thread(target=trigger_gc, args=[ref])
+
+        lua.execute(
+            "start, join = ...; start(); join()",
+            thread.start,
+            thread.join,
+        )
+        assert not thread.is_alive(), "thread didn't finish - deadlock?"
 
 
 class TestDontUnpackTuples(LupaTestCase):
