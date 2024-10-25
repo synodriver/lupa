@@ -348,6 +348,15 @@ if has_option('--with-lua-checks'):
 if has_option('--with-lua-dlopen'):
     c_defines.append(('LUA_USE_DLOPEN', None))
 
+if (
+    sys.version_info > (3, 13, 0)
+    and hasattr(sys, "_is_gil_enabled")
+    and not sys._is_gil_enabled()
+):
+    print("build nogil")
+    c_defines.append(
+        ("Py_GIL_DISABLED", "1"),
+    )  # ("CYTHON_METH_FASTCALL", "1"), ("CYTHON_VECTORCALL",  1)]
 
 # find Lua
 option_no_bundle = has_option('--no-bundle')
@@ -411,6 +420,7 @@ def prepare_extensions(use_cython=True):
         try:
             import Cython.Compiler.Version
             import Cython.Compiler.Errors as CythonErrors
+            from packaging.version import Version
             from Cython.Build import cythonize
             print("building with Cython " + Cython.Compiler.Version.version)
             CythonErrors.LEVEL = 0
@@ -418,14 +428,17 @@ def prepare_extensions(use_cython=True):
             print("WARNING: trying to build with Cython, but it is not installed")
     else:
         print("building without Cython")
+    compiler_directives = {
+        "cdivision": True,
+        "embedsignature": True,
+        "boundscheck": False,
+        "wraparound": False,
+    }
+    if Version(Cython.Compiler.Version.version) >= Version("3.1.0a0"):
+        compiler_directives["freethreading_compatible"] = True
 
     if cythonize is not None:
-        ext_modules = cythonize(ext_modules, compiler_directives={
-        "always_allow_keywords": True,
-        "cdivision": True,
-        "boundscheck": False,
-        "wraparound": False
-    })
+        ext_modules = cythonize(ext_modules, compiler_directives=compiler_directives)
 
         # Fix compiler warning due to missing pragma-push in Cython 3.0.9.
         for ext in ext_modules:

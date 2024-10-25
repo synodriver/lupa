@@ -892,7 +892,7 @@ cdef tuple unpack_lua_table(LuaRuntime runtime, lua_State* L):
         while lua.lua_next(L, -2):    # key value
             key = py_from_lua(runtime, L, -2)
             value = py_from_lua(runtime, L, -1)
-            if isinstance(key, (int, long)) and not isinstance(key, bool):
+            if isinstance(key, int) and not isinstance(key, bool):
                 index = <Py_ssize_t>key
                 if index < 1 or index > length:
                     raise IndexError("table index out of range")
@@ -1710,7 +1710,7 @@ cdef int py_to_lua(LuaRuntime runtime, lua_State *L, object o, bint wrap_none=Fa
     elif type(o) is float:
         lua.lua_pushnumber(L, <lua.lua_Number>cpython.float.PyFloat_AS_DOUBLE(o))
         pushed_values_count = 1
-    elif isinstance(o, (long, int)):
+    elif isinstance(o, int):
         try:
             lua.lua_pushinteger(L, <lua.lua_Integer>o)
             pushed_values_count = 1
