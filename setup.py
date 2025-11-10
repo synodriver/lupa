@@ -3,6 +3,7 @@ import os
 import os.path
 import re
 import shutil
+import sysconfig
 import subprocess
 import sys
 
@@ -372,7 +373,7 @@ if has_option('--with-lua-checks'):
 if has_option('--with-lua-dlopen'):
     c_defines.append(('LUA_USE_DLOPEN', None))
 
-if sysconfig.get_config_var("Py_GIL_DISABLED")::
+if sysconfig.get_config_var("Py_GIL_DISABLED"):
     print("build nogil")
     c_defines.append(
         ("Py_GIL_DISABLED", "1"),
