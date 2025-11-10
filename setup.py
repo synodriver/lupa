@@ -17,7 +17,7 @@ try:
 except ImportError:
     from distutils.core import setup, Extension
 
-VERSION = '2.5'
+VERSION = '2.6'
 
 extra_setup_args = {}
 
@@ -319,9 +319,11 @@ def use_bundled_lua(path, macros):
 
 
 def get_option(name):
-    for i, arg in enumerate(sys.argv[1:-1], 1):
-        if arg == name:
-            sys.argv.pop(i)
+    for i, arg in enumerate(sys.argv[1:], 1):
+        if arg.startswith(name):
+            arg = sys.argv.pop(i)
+            if '=' in arg:
+                return arg.split('=', 1)[1]
             return sys.argv.pop(i)
     return ""
 
@@ -334,8 +336,34 @@ def has_option(name):
     return os.environ.get(envvar_name) == 'true'
 
 
+def check_limited_api_option(name):
+    def handle_arg(arg: str):
+        arg = arg.lower()
+        if arg == "true":
+            # The default Limited API version is 3.9, unless we're on a lower Python version
+            # (which is mainly for the sake of testing 3.8 on the CI)
+            if sys.version_info >= (3, 9):
+                return (3, 9)
+            else:
+                return sys.version_info[:2]
+        if arg == "false":
+            return None
+        major, minor = arg.split('.', 1)
+        return (int(major), int(minor))
+
+    value = get_option(name)
+    if value:
+        return handle_arg(value)
+
+    env_var_name = 'LUPA_' + name.lstrip('-').upper().replace("-", "_")
+    env_var = os.environ.get(env_var_name)
+    if env_var is None:
+        return None
+    return handle_arg(env_var)
+
+
 c_defines = [
-    ('CYTHON_CLINE_IN_TRACEBACK', 0),
+    ('CYTHON_CLINE_IN_TRACEBACK', '0'),
 ]
 if has_option('--without-assert'):
     c_defines.append(('CYTHON_WITHOUT_ASSERTIONS', None))
@@ -344,15 +372,14 @@ if has_option('--with-lua-checks'):
 if has_option('--with-lua-dlopen'):
     c_defines.append(('LUA_USE_DLOPEN', None))
 
-if (
-    sys.version_info > (3, 13, 0)
-    and hasattr(sys, "_is_gil_enabled")
-    and not sys._is_gil_enabled()
-):
+if sysconfig.get_config_var("Py_GIL_DISABLED")::
     print("build nogil")
     c_defines.append(
         ("Py_GIL_DISABLED", "1"),
     )  # ("CYTHON_METH_FASTCALL", "1"), ("CYTHON_VECTORCALL",  1)]
+option_limited_api = check_limited_api_option('--limited-api')
+if option_limited_api:
+    c_defines.append(('Py_LIMITED_API', f'0x{option_limited_api[0]:02x}{option_limited_api[1]:02x}0000'))
 
 # find Lua
 option_no_bundle = has_option('--no-bundle')
